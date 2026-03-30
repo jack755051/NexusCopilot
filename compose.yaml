@@ -1,0 +1,48 @@
+﻿services:
+  # 後端 API
+  api:
+    build:
+      context: .
+      dockerfile: ./NexusCopilot/Dockerfile
+    container_name: nexus_api
+    ports:
+      - "5020:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNET_ENV}
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 向量資料庫
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: nexus_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - nexus_pgdata:/var/lib/postgresql/data
+
+  # 前端 Angular (預留，等我們開始做前端時再取消註解)
+  # ui:
+  #   build:
+  #     context: ./nexus-ui
+  #     dockerfile: Dockerfile
+  #   container_name: nexus_ui
+  #   ports:
+  #     - "4200:4200"
+  #   depends_on:
+  #     - api
+
+volumes:
+  nexus_pgdata:
